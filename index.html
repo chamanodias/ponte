@@ -104,9 +104,19 @@
 
             try {
                 updateStatus('Procurando dispositivos...', 'bg-yellow-500');
+
+                // --- MUDANÇA IMPORTANTE AQUI ---
+                // Em vez de procurar por um serviço, vamos procurar pelo NOME do dispositivo.
+                // Isto é muito mais fiável para o HC-05.
                 device = await navigator.bluetooth.requestDevice({
-                    filters: [{ services: ['00001101-0000-1000-8000-00805f9b34fb'] }]
+                    filters: [
+                        { name: 'HC-05' },      // Tenta encontrar um dispositivo chamado exatamente "HC-05"
+                        { namePrefix: 'HC' }  // Se não encontrar, tenta encontrar um que comece com "HC"
+                    ],
+                    // Como não estamos a filtrar pelo serviço, temos de o declarar como opcional para pedir permissão para o usar.
+                    optionalServices: ['00001101-0000-1000-8000-00805f9b34fb'] 
                 });
+                // --- FIM DA MUDANÇA ---
 
                 updateStatus('Conectando ao dispositivo...', 'bg-yellow-500');
                 const server = await device.gatt.connect();
@@ -196,33 +206,19 @@
             supabaseStatus.classList.add(isSuccess ? 'text-green-600' : 'text-red-600');
         }
 
-        // --- INÍCIO DA LÓGICA PWA ---
-        // 1. Registro do Service Worker para permitir funcionamento offline básico
+        // --- Lógica PWA ---
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(registration => {
-                        console.log('Service Worker registrado com sucesso:', registration);
-                    })
-                    .catch(error => {
-                        console.log('Falha ao registrar Service Worker:', error);
-                    });
+                navigator.serviceWorker.register('sw.js').catch(err => console.log('SW registration failed:', err));
             });
         }
-
-        // 2. Lógica para mostrar o botão de instalação
         let deferredPrompt;
         const installContainer = document.getElementById('install-container');
-
         window.addEventListener('beforeinstallprompt', (e) => {
-            // Previne que o Chrome mostre o prompt de instalação automaticamente
             e.preventDefault();
-            // Guarda o evento para que possa ser disparado depois
             deferredPrompt = e;
-            // Mostra o nosso botão/aviso de instalação customizado
             installContainer.style.display = 'block';
         });
-
     </script>
 </body>
 </html>
