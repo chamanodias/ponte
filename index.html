@@ -105,16 +105,14 @@
             try {
                 updateStatus('Procurando dispositivos...', 'bg-yellow-500');
 
-                // --- MUDANÇA IMPORTANTE AQUI ---
-                // Em vez de procurar por um serviço, vamos procurar pelo NOME do dispositivo.
-                // Isto é muito mais fiável para o HC-05.
+                // --- MUDANÇA FINAL (MODO DE COMPATIBILIDADE) ---
+                // Removemos todos os filtros. Isto mostrará TODOS os dispositivos Bluetooth
+                // próximos. É a forma mais garantida de encontrar o HC-05, mesmo que
+                // o nome ou os serviços não estejam a ser anunciados corretamente.
                 device = await navigator.bluetooth.requestDevice({
-                    filters: [
-                        { name: 'HC-05' },      // Tenta encontrar um dispositivo chamado exatamente "HC-05"
-                        { namePrefix: 'HC' }  // Se não encontrar, tenta encontrar um que comece com "HC"
-                    ],
-                    // Como não estamos a filtrar pelo serviço, temos de o declarar como opcional para pedir permissão para o usar.
-                    optionalServices: ['00001101-0000-1000-8000-00805f9b34fb'] 
+                    acceptAllDevices: true,
+                    // Continuamos a pedir permissão para o serviço de Porta Serial (SPP).
+                    optionalServices: ['00001101-0000-1000-8000-00805f9b34fb']
                 });
                 // --- FIM DA MUDANÇA ---
 
@@ -135,7 +133,12 @@
 
             } catch (error) {
                 console.error('Erro ao conectar:', error);
-                updateStatus(`Erro: ${error.message}`, 'bg-red-500');
+                // Se o usuário cancelar a seleção, não mostramos um erro feio.
+                if (error.name !== 'NotFoundError') {
+                    updateStatus(`Erro: ${error.message}`, 'bg-red-500');
+                } else {
+                    updateStatus('Seleção de dispositivo cancelada.', 'bg-red-500');
+                }
             }
         });
         
